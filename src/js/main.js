@@ -2,10 +2,14 @@
 
 const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
+const beep = new Audio('kick.wav');
+const h1 = document.querySelector('h1');
 
 let size;
-let position;
 let points;
+let position;
+let lastPosition;
+let secondToLastPosition;
 let initialPosition;
 
 function setup() {
@@ -56,9 +60,44 @@ function updatePosition(e) {
         motion = e.accelerationIncludingGravity.z;
     }
 
-    position = Math.round(initialPosition - motion * 5);
+    motion = Math.round(initialPosition - motion * 5);
+
+    if (position === motion) {
+        return;
+    }
+
+    secondToLastPosition = lastPosition;
+    lastPosition = position;
+    position = motion;
+    beepIfPeek();
 }
 
+function simulate(e) {
+
+    if (position === e.offsetY) {
+        return;
+    }
+
+    secondToLastPosition = lastPosition;
+    lastPosition = position;
+    position = e.offsetY;
+    beepIfPeek();
+}
+
+function beepIfPeek() {
+
+    if (secondToLastPosition < lastPosition &&
+        position < lastPosition    
+    ) {
+        beep.pause();
+        beep.currentTime = 0;
+        beep.play();
+    }
+}
+
+canvas.addEventListener('click', e => beep.play())
+
+window.addEventListener('mousemove', simulate);
 window.addEventListener('devicemotion', updatePosition);
 
 
