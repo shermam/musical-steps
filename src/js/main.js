@@ -12,21 +12,53 @@ let lastPosition;
 let secondToLastPosition;
 let initialPosition;
 
+let normalizedPosition;
+let normalizationSamplePoll;
+let normalizedPoints;
+let poolSize;
+
 function setup() {
     canvas.width = 500;
     canvas.height = 200;
-    size = 10;
-    position = initialPosition = canvas.height / 2;
+    size = 2;
+    position = initialPosition = normalizedPosition = canvas.height / 2;
     points = new Array(canvas.width / size);
+    poolSize = 10;
+    normalizationSamplePoll = new Array(poolSize);
+    normalizedPoints = new Array(canvas.width / size);
 }
 
 
 function draw() {
 
     updatePoints();
+    normalize();
     drawPoints();
 
     requestAnimationFrame(draw);
+}
+
+function normalize() {
+
+    const normal = points
+        .slice(-poolSize)
+        .reduce((p, c, i, a) => p + (c / a.length), 0);
+
+    for (let i = 0; i < normalizedPoints.length - 1; i++) {
+        normalizedPoints[i] = normalizedPoints[i + 1];
+    }
+
+    normalizedPoints[normalizedPoints.length - 1] = normal;
+
+    if (normalizedPosition === normal) {
+        return;
+    }
+
+    secondToLastPosition = lastPosition;
+    lastPosition = normalizedPosition;
+    normalizedPosition = normal;
+
+    beepIfPeek();
 }
 
 function updatePoints() {
@@ -41,9 +73,20 @@ function drawPoints() {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     context.beginPath();
+    context.strokeStyle = 'black';
     context.moveTo(0, canvas.height / 2)
     for (let i = 0; i < points.length; i++) {
         context.lineTo(size * i, points[i]);
+    }
+
+    context.stroke();
+    context.closePath();
+
+    context.beginPath();
+    context.strokeStyle = 'red';
+    context.moveTo(0, canvas.height / 2)
+    for (let i = 0; i < normalizedPoints.length; i++) {
+        context.lineTo(size * i, (normalizedPoints[i + (poolSize/2)] || points[i]) * 1);
     }
 
     context.stroke();
@@ -62,32 +105,18 @@ function updatePosition(e) {
 
     motion = Math.round(initialPosition - motion * 5);
 
-    if (position === motion) {
-        return;
-    }
-
-    secondToLastPosition = lastPosition;
-    lastPosition = position;
     position = motion;
-    beepIfPeek();
 }
 
 function simulate(e) {
 
-    if (position === e.offsetY) {
-        return;
-    }
-
-    secondToLastPosition = lastPosition;
-    lastPosition = position;
     position = e.offsetY;
-    beepIfPeek();
 }
 
 function beepIfPeek() {
 
     if (secondToLastPosition < lastPosition &&
-        position < lastPosition    
+        normalizedPosition < lastPosition    
     ) {
         beep.pause();
         beep.currentTime = 0;
