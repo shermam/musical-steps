@@ -4,6 +4,7 @@ const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
 const beep = new Audio('kick.wav');
 const h1 = document.querySelector('h1');
+const amplitudeTrashold = 10;
 
 let size;
 let points;
@@ -17,15 +18,20 @@ let normalizationSamplePoll;
 let normalizedPoints;
 let poolSize;
 
+let lastPeek;
+let lastValey;
+
 function setup() {
     canvas.width = 500;
     canvas.height = 200;
     size = 2;
     position = initialPosition = normalizedPosition = canvas.height / 2;
     points = new Array(canvas.width / size);
-    poolSize = 10;
+    poolSize = 4;
     normalizationSamplePoll = new Array(poolSize);
     normalizedPoints = new Array(canvas.width / size);
+    lastPeek = 0;
+    lastValey = 0;
 }
 
 
@@ -35,7 +41,13 @@ function draw() {
     normalize();
     drawPoints();
 
+    showAmplitude();
+
     requestAnimationFrame(draw);
+}
+
+function showAmplitude() {
+    h1.innerHTML = `Amplitude: ${lastValey - lastPeek}`;
 }
 
 function normalize() {
@@ -118,9 +130,19 @@ function beepIfPeek() {
     if (secondToLastPosition < lastPosition &&
         normalizedPosition < lastPosition    
     ) {
-        beep.pause();
-        beep.currentTime = 0;
-        beep.play();
+        lastValey = lastPosition;
+    }
+
+    if (secondToLastPosition > lastPosition &&
+        normalizedPosition > lastPosition    
+    ) {
+        lastPeek = lastPosition;
+
+        if (lastValey - lastPeek > amplitudeTrashold) {
+            beep.pause();
+            beep.currentTime = 0;
+            beep.play();
+        }
     }
 }
 
